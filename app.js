@@ -1,13 +1,15 @@
 const express = require("express");
 const app = express();
-const https = require("https");
-const fs = require("fs");
 const routes = require("./routes/index");
+const path = require('path');
 const jwt = require("jsonwebtoken");
 
-const host = "localhost";
-const port = 443;
 const tokenKey = "1a2b-3c4d-5e6f-7g8h";
+
+app.use(express.json());
+app.use(express.urlencoded({extended: false}));
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 app.use((req, res, next) => {
   if (req.headers.authorization) {
@@ -34,16 +36,4 @@ app.use((req, res, next) => {
 });
 
 app.use("/api", routes);
-
-
-https
-  .createServer(
-    {
-      key: fs.readFileSync("./cert/key.pem"),
-      cert: fs.readFileSync("./cert/cert.pem"),
-    },
-    app
-  )
-  .listen(port, host, function () {
-    console.log(`Server listens https://${host}:${port}`);
-  });
+module.exports = app;

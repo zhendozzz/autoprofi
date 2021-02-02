@@ -11,13 +11,13 @@ class Telegram {
             const chatId = msg.chat.id;
             const opt = this.buildKeyboardMessage(
                 this.buildKeyboardVariants(
-                    [{
-                        text: '16:30',
-                        date: '21.01.2021'
-                    }]
-                )
+                    this.createScheduleForDate('21.01.2021',
+                        ['06:30','08:00','09:30','11:00','13:00','14:30','16:00','17:30',]
+                        )
+                ),
+                4
             );
-            this.bot.sendMessage(chatId, 'text', opt);
+            this.bot.sendMessage(chatId, '21.01.2021', opt);
         }
     };
 
@@ -59,9 +59,34 @@ class Telegram {
     }
 
     processCallBackQuery(msg) {
-        const data = JSON.parse(msg.data);
-        //const {time, date} = data;
-        console.log(msg);
+        console.log(msg)
+        const {data, from} = msg;
+        const {message_id, chat} = msg.message
+        let {reply_markup} = msg.message
+
+        const parsedData = JSON.parse(data);
+
+        reply_markup.inline_keyboard = reply_markup.inline_keyboard.map(arrays => {
+            arrays = arrays.filter(item => {
+                return parsedData.text !== item.text;
+            })
+            return arrays
+        })
+
+        const opt = {
+            message_id: message_id,
+            chat_id: chat.id,
+        };
+
+        this.bot.editMessageReplyMarkup(reply_markup, opt).then(
+            () => {
+                this.bot.sendMessage(from.id, "Вы забронировали " + parsedData.date + " на " + parsedData.text);
+            }
+        ).catch(
+            () => {
+                this.bot.sendMessage(from.id, "Ошибка, время уже занято");
+            }
+        );
     }
 
     buildKeyboardVariants(objects = []) {
@@ -80,25 +105,32 @@ class Telegram {
         let counter = 0;
         let keyboard = [];
         let keyboardData = [];
-        for (let i = 0; i < variants.length; i++) {
+        variants.forEach((variant) => {
             counter++;
-            const variant = variants[i];
             keyboardData.push(variant);
             if (counter >= numberOnLines) {
                 keyboard.push(keyboardData);
                 keyboardData = [];
                 counter = 0;
             }
-        }
+        })
         keyboard.push(keyboardData);
-        const opt = {
+        return {
             parse_mode: 'markdown',
             disable_web_page_preview: true,
             reply_markup: JSON.stringify({
                 inline_keyboard: keyboard
             })
         };
-        return opt;
+    }
+
+    createScheduleForDate(date, times = []) {
+        return times.map((time) => {
+            return {
+                text: time,
+                date: date
+            }
+        })
     }
 }
 
